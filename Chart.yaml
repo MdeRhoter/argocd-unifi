@@ -1,0 +1,18 @@
+apiVersion: v2
+name: argocd-unifi
+description: A Helm chart for UniFi Network Application deployment
+type: application
+version: 0.1.0
+appVersion: "9.1.120"
+home: https://github.com/MdeRhoter/argocd-unifi
+sources:
+  - https://github.com/MdeRhoter/argocd-unifi
+maintainers:
+  - name: MdeRhoter
+    email: martijn@example.com
+keywords:
+  - unifi
+  - network
+  - controller
+  - ubiquiti
+
