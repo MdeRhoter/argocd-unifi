@@ -11,45 +11,24 @@ controllers:
         image:
           repository: lscr.io/linuxserver/unifi-network-application
           tag: 9.1.120-ls92
-          pullPolicy: IfNotPresent
-          env:
+          pullPolicy: IfNotPresent        env:
           PUID: 1000
           PGID: 1000
           TZ: UTC
           MONGO_USER: unifi
           MONGO_PASS: unifipass
-          MONGO_HOST: localhost
+          MONGO_HOST: argocd-unifi-mongodb
           MONGO_PORT: 27017
           MONGO_DBNAME: unifi
           MEM_LIMIT: 1024
           MEM_STARTUP: 1024
-        
-        resources:
+          resources:
           requests:
             memory: 1Gi
             cpu: 500m
           limits:
             memory: 2Gi
             cpu: 1000m
-      
-      mongodb:
-        image:
-          repository: mongo
-          tag: 7.0
-          pullPolicy: IfNotPresent
-        
-        env:
-          MONGO_INITDB_ROOT_USERNAME: unifi
-          MONGO_INITDB_ROOT_PASSWORD: unifipass
-          MONGO_INITDB_DATABASE: unifi
-        
-        resources:
-          requests:
-            memory: 512Mi
-            cpu: 250m
-          limits:
-            memory: 1Gi
-            cpu: 500m
     
     # Node affinity to run only on k3s-node3
     pod:
@@ -64,6 +43,45 @@ controllers:
                 operator: In
                 values:
                 - k3s-node3
+
+# MongoDB configuration
+mongodb:
+  enabled: true
+  image:
+    repository: mongo
+    tag: 7.0
+    pullPolicy: IfNotPresent
+  
+  env:
+    MONGO_INITDB_ROOT_USERNAME: unifi
+    MONGO_INITDB_ROOT_PASSWORD: unifipass
+    MONGO_INITDB_DATABASE: unifi
+  
+  resources:
+    requests:
+      memory: 512Mi
+      cpu: 250m
+    limits:
+      memory: 1Gi
+      cpu: 500m
+  
+  persistence:
+    storageClass: local-path
+    size: 10Gi
+  
+  # Node affinity to run on same node as UniFi
+  pod:
+    nodeSelector:
+      kubernetes.io/hostname: k3s-node3
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+              - k3s-node3
 
 service:
   main:
@@ -101,13 +119,6 @@ service:
         port: 5514
         nodePort: 30514
         protocol: UDP
-  
-  mongodb:
-    type: ClusterIP
-    ports:
-      mongodb:
-        port: 27017
-        protocol: TCP
 
 persistence:
   config:
@@ -118,16 +129,6 @@ persistence:
     accessMode: ReadWriteOnce
     globalMounts:
       - path: /config
-        readOnly: false
-  
-  data:
-    enabled: true
-    type: persistentVolumeClaim
-    storageClass: local-path
-    size: 10Gi
-    accessMode: ReadWriteOnce
-    globalMounts:
-      - path: /data/db
         readOnly: false
 
 # Ingress configuration (optional)

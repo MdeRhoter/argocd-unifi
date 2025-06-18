@@ -1,0 +1,93 @@
+{{- if .Values.mongodb.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "argocd-unifi.fullname" . }}-mongodb
+  labels:
+    {{- include "argocd-unifi.labels" . | nindent 4 }}
+    app.kubernetes.io/component: mongodb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "argocd-unifi.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: mongodb
+  template:
+    metadata:
+      labels:
+        {{- include "argocd-unifi.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: mongodb
+    spec:
+      {{- if .Values.mongodb.pod }}
+      {{- with .Values.mongodb.pod.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.mongodb.pod.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- end }}
+      {{- with .Values.defaultPodOptions.securityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      initContainers:
+        - name: fix-permissions
+          image: busybox:1.35
+          command: ['sh', '-c']
+          args:
+            - |
+              chown -R 999:999 /data/db
+              chmod -R 755 /data/db
+          securityContext:
+            runAsUser: 0
+          volumeMounts:
+            - name: mongodb-data
+              mountPath: /data/db
+      containers:
+        - name: mongodb
+          image: "{{ .Values.mongodb.image.repository }}:{{ .Values.mongodb.image.tag }}"
+          imagePullPolicy: {{ .Values.mongodb.image.pullPolicy }}
+          env:
+            {{- range $key, $value := .Values.mongodb.env }}
+            {{- if and (eq $key "MONGO_INITDB_ROOT_USERNAME") $.Values.azureKeyVault.enabled }}
+            - name: {{ $key }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "argocd-unifi.fullname" $ }}-mongo-username
+                  key: username
+            {{- else if and (eq $key "MONGO_INITDB_ROOT_PASSWORD") $.Values.azureKeyVault.enabled }}
+            - name: {{ $key }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "argocd-unifi.fullname" $ }}-mongo-password
+                  key: password
+            {{- else if and (eq $key "MONGO_INITDB_DATABASE") $.Values.azureKeyVault.enabled }}
+            - name: {{ $key }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "argocd-unifi.fullname" $ }}-mongo-database
+                  key: database
+            {{- else }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+            {{- end }}
+          ports:
+            - name: mongodb
+              containerPort: 27017
+              protocol: TCP
+          {{- with .Values.mongodb.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: mongodb-data
+              mountPath: /data/db
+              readOnly: false
+      volumes:
+        - name: mongodb-data
+          persistentVolumeClaim:
+            claimName: {{ include "argocd-unifi.fullname" . }}-mongodb-data
+{{- end }}
