@@ -23,10 +23,12 @@ spec:
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- end }}      {{- with .Values.defaultPodOptions.securityContext }}
+      {{- end }}
+      {{- with .Values.defaultPodOptions.securityContext }}
       securityContext:
         {{- toYaml . | nindent 8 }}
-      {{- end }}      initContainers:
+      {{- end }}
+      initContainers:
         - name: fix-permissions
           image: busybox:1.35
           command: ['sh', '-c']
@@ -39,7 +41,7 @@ spec:
           volumeMounts:
             - name: config
               mountPath: /config
-      containers:        
+      containers:
         - name: unifi
           image: "{{ .Values.controllers.main.containers.main.image.repository }}:{{ .Values.controllers.main.containers.main.image.tag }}"
           imagePullPolicy: {{ .Values.controllers.main.containers.main.image.pullPolicy }}
@@ -81,7 +83,8 @@ spec:
           {{- with .Values.controllers.main.containers.main.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
-          {{- end }}          volumeMounts:
+          {{- end }}
+          volumeMounts:
             {{- range $name, $config := .Values.persistence }}
             {{- if $config.enabled }}
             {{- range $config.globalMounts }}
@@ -99,4 +102,3 @@ spec:
             claimName: {{ include "argocd-unifi.fullname" $ }}-{{ $name }}
         {{- end }}
         {{- end }}
-
