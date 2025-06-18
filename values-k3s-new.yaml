@@ -11,7 +11,8 @@ controllers:
         image:
           repository: lscr.io/linuxserver/unifi-network-application
           tag: 9.1.120-ls92
-          pullPolicy: IfNotPresent        env:
+          pullPolicy: IfNotPresent
+        env:
           PUID: 1000
           PGID: 1000
           TZ: UTC
@@ -22,7 +23,7 @@ controllers:
           MONGO_DBNAME: unifi
           MEM_LIMIT: 1024
           MEM_STARTUP: 1024
-          resources:
+        resources:
           requests:
             memory: 1Gi
             cpu: 500m
@@ -162,4 +163,3 @@ azureKeyVault:
     username: unifi-mongo-username
     password: unifi-mongo-password
     database: unifi-mongo-database
-
