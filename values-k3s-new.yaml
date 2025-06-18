@@ -12,14 +12,13 @@ controllers:
           repository: lscr.io/linuxserver/unifi-network-application
           tag: 9.1.120-ls92
           pullPolicy: IfNotPresent
-        
-        env:
+          env:
           PUID: 1000
           PGID: 1000
           TZ: UTC
           MONGO_USER: unifi
           MONGO_PASS: unifipass
-          MONGO_HOST: unifi-db
+          MONGO_HOST: localhost
           MONGO_PORT: 27017
           MONGO_DBNAME: unifi
           MEM_LIMIT: 1024
