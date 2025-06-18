@@ -1,0 +1,21 @@
+{{- range $name, $config := .Values.persistence }}
+{{- if $config.enabled }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "argocd-unifi.fullname" $ }}-{{ $name }}
+  labels:
+    {{- include "argocd-unifi.labels" $ | nindent 4 }}
+spec:
+  accessModes:
+    - {{ $config.accessMode | default "ReadWriteOnce" }}
+  {{- if $config.storageClass }}
+  storageClassName: {{ $config.storageClass }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ $config.size }}
+{{- end }}
+{{- end }}
+
