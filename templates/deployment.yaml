@@ -53,31 +53,45 @@ spec:
             runAsUser: 0
             runAsGroup: 0
             allowPrivilegeEscalation: true
-          env:
-            {{- range $key, $value := .Values.controllers.main.containers.main.env }}
-            {{- if and (eq $key "MONGO_USER") $.Values.azureKeyVault.enabled }}
-            - name: {{ $key }}
+            env:
+            - name: PUID
+              value: "1000"
+            - name: PGID
+              value: "1000"
+            - name: TZ
+              value: "UTC"
+            - name: MEM_LIMIT
+              value: "1024"
+            - name: MEM_STARTUP
+              value: "1024"
+            {{- if .Values.azureKeyVault.enabled }}
+            - name: MONGO_USER
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "argocd-unifi.fullname" $ }}-mongo-username
+                  name: {{ include "argocd-unifi.fullname" . }}-mongo-username
                   key: username
-            {{- else if and (eq $key "MONGO_PASS") $.Values.azureKeyVault.enabled }}
-            - name: {{ $key }}
+            - name: MONGO_PASS
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "argocd-unifi.fullname" $ }}-mongo-password
+                  name: {{ include "argocd-unifi.fullname" . }}-mongo-password
                   key: password
-            {{- else if and (eq $key "MONGO_DBNAME") $.Values.azureKeyVault.enabled }}
-            - name: {{ $key }}
+            - name: MONGO_DBNAME
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "argocd-unifi.fullname" $ }}-mongo-database
+                  name: {{ include "argocd-unifi.fullname" . }}-mongo-database
                   key: database
             {{- else }}
-            - name: {{ $key }}
-              value: {{ $value | quote }}
+            - name: MONGO_USER
+              value: {{ .Values.controllers.main.containers.main.env.MONGO_USER | quote }}
+            - name: MONGO_PASS
+              value: {{ .Values.controllers.main.containers.main.env.MONGO_PASS | quote }}
+            - name: MONGO_DBNAME
+              value: {{ .Values.controllers.main.containers.main.env.MONGO_DBNAME | quote }}
             {{- end }}
-            {{- end }}
+            - name: MONGO_HOST
+              value: {{ .Values.controllers.main.containers.main.env.MONGO_HOST | quote }}
+            - name: MONGO_PORT
+              value: {{ .Values.controllers.main.containers.main.env.MONGO_PORT | quote }}
           ports:
             {{- range $name, $port := .Values.service.main.ports }}
             - name: {{ $name }}
