@@ -26,9 +26,9 @@ spec:
       {{- end }}
       {{- with .Values.defaultPodOptions.securityContext }}
       securityContext:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      initContainers:
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+      {{- end }}      initContainers:
         - name: fix-permissions
           image: busybox:1.35
           command: ['sh', '-c']
@@ -36,6 +36,9 @@ spec:
             - |
               chown -R 1000:1000 /config
               chmod -R 755 /config
+              # Create necessary directories
+              mkdir -p /config/data /config/logs /config/run
+              chown -R 1000:1000 /config/data /config/logs /config/run
           securityContext:
             runAsUser: 0
           volumeMounts:
@@ -46,8 +49,8 @@ spec:
           image: "{{ .Values.controllers.main.containers.main.image.repository }}:{{ .Values.controllers.main.containers.main.image.tag }}"
           imagePullPolicy: {{ .Values.controllers.main.containers.main.image.pullPolicy }}
           securityContext:
-            runAsUser: 1000
-            runAsGroup: 1000
+            runAsUser: 0
+            runAsGroup: 0
             allowPrivilegeEscalation: true
           env:
             {{- range $key, $value := .Values.controllers.main.containers.main.env }}
