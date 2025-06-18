@@ -73,7 +73,7 @@ service:
       web-ui:
         port: 8443
         nodePort: 30443
-        protocol: HTTPS
+        protocol: TCP
       stun:
         port: 3478
         nodePort: 30478
@@ -84,7 +84,7 @@ service:
         protocol: UDP
       device-comm:
         port: 8080
-        nodePort: 30080
+        nodePort: 30180
         protocol: TCP
       l2-discovery:
         port: 1900
@@ -93,7 +93,7 @@ service:
       guest-portal:
         port: 8843
         nodePort: 30843
-        protocol: HTTPS
+        protocol: TCP
       mobile-speed:
         port: 6789
         nodePort: 30789
