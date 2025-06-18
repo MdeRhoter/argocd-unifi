@@ -8,6 +8,8 @@ metadata:
     app.kubernetes.io/component: mongodb
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       {{- include "argocd-unifi.selectorLabels" . | nindent 6 }}
@@ -33,13 +35,17 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       initContainers:
-        - name: fix-permissions
+        - name: fix-permissions-and-cleanup
           image: busybox:1.35
           command: ['sh', '-c']
           args:
             - |
               chown -R 999:999 /data/db
               chmod -R 755 /data/db
+              # Remove stale lock file if it exists
+              rm -f /data/db/mongod.lock
+              # Ensure clean shutdown marker is removed
+              rm -f /data/db/WiredTiger.lock
           securityContext:
             runAsUser: 0
           volumeMounts:
@@ -49,6 +55,13 @@ spec:
         - name: mongodb
           image: "{{ .Values.mongodb.image.repository }}:{{ .Values.mongodb.image.tag }}"
           imagePullPolicy: {{ .Values.mongodb.image.pullPolicy }}
+          command: ["mongod"]
+          args: 
+            - "--bind_ip_all"
+            - "--auth"
+            - "--dbpath=/data/db"
+            - "--logpath=/data/db/mongodb.log"
+            - "--logappend"
           env:
             {{- range $key, $value := .Values.mongodb.env }}
             {{- if and (eq $key "MONGO_INITDB_ROOT_USERNAME") $.Values.azureKeyVault.enabled }}
@@ -82,6 +95,10 @@ spec:
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
+          lifecycle:
+            preStop:
+              exec:
+                command: ["mongod", "--shutdown"]
           volumeMounts:
             - name: mongodb-data
               mountPath: /data/db
