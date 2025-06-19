@@ -1,63 +1,33 @@
 # UniFi Network Application Configuration for k3s-new cluster
-# Using bjw-s app-template chart
 
-controllers:
-  main:
-    type: deployment
-    replicas: 1
-    
-    containers:
-      main:
-        image:
-          repository: lscr.io/linuxserver/unifi-network-application
-          tag: 9.1.120-ls92
-          pullPolicy: IfNotPresent
-        env:
-          PUID: 1000
-          PGID: 1000
-          TZ: UTC
-          MONGO_USER: unifi
-          MONGO_PASS: unifipass
-          MONGO_HOST: argocd-unifi-mongodb
-          MONGO_PORT: 27017
-          MONGO_DBNAME: unifi
-          MEM_LIMIT: 1024
-          MEM_STARTUP: 1024
-        resources:
-          requests:
-            memory: 1Gi
-            cpu: 500m
-          limits:
-            memory: 2Gi
-            cpu: 1000m
-    
-    # Node affinity to run only on k3s-node3
-    pod:
-      nodeSelector:
-        kubernetes.io/hostname: k3s-node3
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-            - matchExpressions:
-              - key: kubernetes.io/hostname
-                operator: In
-                values:
-                - k3s-node3
+replicaCount: 1
 
-# MongoDB configuration
+image:
+  repository: lscr.io/linuxserver/unifi-network-application
+  tag: 9.1.120-ls92
+  pullPolicy: IfNotPresent
+
+# Environment variables
+env:
+  PUID: "1000"
+  PGID: "1000"
+  TZ: "UTC"
+  MEM_LIMIT: "1024"
+  MEM_STARTUP: "1024"
+
+# MongoDB connection (will use secrets from Azure Key Vault)
 mongodb:
   enabled: true
+  host: argocd-unifi-mongodb
+  port: "27017"
   image:
     repository: mongo
-    tag: 7.0
+    tag: "7.0"
     pullPolicy: IfNotPresent
-  
   env:
     MONGO_INITDB_ROOT_USERNAME: unifi
     MONGO_INITDB_ROOT_PASSWORD: unifipass
     MONGO_INITDB_DATABASE: unifi
-  
   resources:
     requests:
       memory: 512Mi
@@ -65,12 +35,9 @@ mongodb:
     limits:
       memory: 1Gi
       cpu: 500m
-  
   persistence:
     storageClass: local-path
     size: 10Gi
-  
-  # Node affinity to run on same node as UniFi
   pod:
     nodeSelector:
       kubernetes.io/hostname: k3s-node3
@@ -84,68 +51,80 @@ mongodb:
               values:
               - k3s-node3
 
-service:
-  main:
-    type: NodePort
-    ports:
-      web-ui:
-        port: 8443
-        nodePort: 30443
-        protocol: TCP
-      stun:
-        port: 3478
-        nodePort: 30478
-        protocol: UDP
-      ap-discovery:
-        port: 10001
-        nodePort: 30001
-        protocol: UDP
-      device-comm:
-        port: 8080
-        nodePort: 30180
-        protocol: TCP
-      l2-discovery:
-        port: 1900
-        nodePort: 30900
-        protocol: UDP
-      guest-portal:
-        port: 8843
-        nodePort: 30843
-        protocol: TCP
-      mobile-speed:
-        port: 6789
-        nodePort: 30789
-        protocol: TCP
-      remote-syslog:
-        port: 5514
-        nodePort: 30514
-        protocol: UDP
+# Resources
+resources:
+  requests:
+    memory: 1Gi
+    cpu: 500m
+  limits:
+    memory: 2Gi
+    cpu: 1000m
 
+# Node affinity
+nodeSelector:
+  kubernetes.io/hostname: k3s-node3
+
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - k3s-node3
+
+# Persistence configuration
 persistence:
   config:
     enabled: true
-    type: persistentVolumeClaim
-    storageClass: local-path
     size: 2Gi
-    accessMode: ReadWriteOnce
-    globalMounts:
-      - path: /config
-        readOnly: false
+    storageClass: local-path
+  data:
+    enabled: true
+    size: 10Gi
+    storageClass: local-path
+  mongodb:
+    enabled: true
+    size: 10Gi
+    storageClass: local-path
 
-# Ingress configuration (optional)
-ingress:
-  main:
-    enabled: false
-    # Uncomment and configure if you want to use ingress
-    # className: nginx
-    # hosts:
-    #   - host: unifi.yourdomain.com
-    #     paths:
-    #       - path: /
-    #         pathType: Prefix
-    #         service:
-    #           name: main
-    #           port: 8443
+# Service configuration
+service:
+  type: NodePort
+  ports:
+    ap-discovery:
+      port: 10001
+      nodePort: 30001
+      protocol: UDP
+    device-comm:
+      port: 8080
+      nodePort: 30180
+      protocol: TCP
+    guest-portal:
+      port: 8843
+      nodePort: 30843
+      protocol: TCP
+    l2-discovery:
+      port: 1900
+      nodePort: 30900
+      protocol: UDP
+    mobile-speed:
+      port: 6789
+      nodePort: 30789
+      protocol: TCP
+    remote-syslog:
+      port: 5514
+      nodePort: 30514
+      protocol: UDP
+    stun:
+      port: 3478
+      nodePort: 30478
+      protocol: UDP
+    web-ui:
+      port: 8443
+      nodePort: 30443
+      protocol: TCP
 
 # Security Context
 defaultPodOptions:

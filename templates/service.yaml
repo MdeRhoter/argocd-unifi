@@ -5,34 +5,16 @@ metadata:
   labels:
     {{- include "argocd-unifi.labels" . | nindent 4 }}
 spec:
-  type: {{ .Values.service.main.type }}
+  type: {{ .Values.service.type }}
   ports:
-    {{- range $name, $port := .Values.service.main.ports }}
-    - port: {{ $port.port }}
+    {{- range $name, $config := .Values.service.ports }}
+    - port: {{ $config.port }}
       targetPort: {{ $name }}
-      protocol: {{ $port.protocol | default "TCP" }}
+      protocol: {{ $config.protocol }}
       name: {{ $name }}
-      {{- if and (eq $.Values.service.main.type "NodePort") $port.nodePort }}
-      nodePort: {{ $port.nodePort }}
+      {{- if $config.nodePort }}
+      nodePort: {{ $config.nodePort }}
       {{- end }}
-    {{- end }}
-  selector:
-    {{- include "argocd-unifi.selectorLabels" . | nindent 4 }}
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: {{ include "argocd-unifi.fullname" . }}-mongodb
-  labels:
-    {{- include "argocd-unifi.labels" . | nindent 4 }}
-spec:
-  type: {{ .Values.service.mongodb.type }}
-  ports:
-    {{- range $name, $port := .Values.service.mongodb.ports }}
-    - port: {{ $port.port }}
-      targetPort: {{ $name }}
-      protocol: {{ $port.protocol | default "TCP" }}
-      name: {{ $name }}
     {{- end }}
   selector:
     {{- include "argocd-unifi.selectorLabels" . | nindent 4 }}

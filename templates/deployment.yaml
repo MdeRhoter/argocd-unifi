@@ -14,21 +14,17 @@ spec:
       labels:
         {{- include "argocd-unifi.selectorLabels" . | nindent 8 }}
     spec:
-      {{- if .Values.controllers.main.pod }}
-      {{- with .Values.controllers.main.pod.nodeSelector }}
+      {{- if .Values.nodeSelector }}
       nodeSelector:
-        {{- toYaml . | nindent 8 }}
+        {{- toYaml .Values.nodeSelector | nindent 8 }}
       {{- end }}
-      {{- with .Values.controllers.main.pod.affinity }}
+      {{- if .Values.affinity }}
       affinity:
-        {{- toYaml . | nindent 8 }}
+        {{- toYaml .Values.affinity | nindent 8 }}
       {{- end }}
-      {{- end }}
-      {{- with .Values.defaultPodOptions.securityContext }}
       securityContext:
         fsGroup: 1000
         fsGroupChangePolicy: OnRootMismatch
-      {{- end }}      
       initContainers:
         - name: fix-permissions
           image: busybox:1.35
@@ -47,13 +43,13 @@ spec:
               mountPath: /config
       containers:
         - name: unifi
-          image: "{{ .Values.controllers.main.containers.main.image.repository }}:{{ .Values.controllers.main.containers.main.image.tag }}"
-          imagePullPolicy: {{ .Values.controllers.main.containers.main.image.pullPolicy }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
           securityContext:
-            runAsUser: 0
-            runAsGroup: 0
-            allowPrivilegeEscalation: true
-            env:
+            runAsUser: 1000
+            runAsGroup: 1000
+            allowPrivilegeEscalation: false
+          env:
             - name: PUID
               value: "1000"
             - name: PGID
@@ -89,34 +85,30 @@ spec:
               value: {{ .Values.controllers.main.containers.main.env.MONGO_DBNAME | quote }}
             {{- end }}
             - name: MONGO_HOST
-              value: {{ .Values.controllers.main.containers.main.env.MONGO_HOST | quote }}
+              value: "{{ include "argocd-unifi.fullname" . }}-mongodb"
             - name: MONGO_PORT
-              value: {{ .Values.controllers.main.containers.main.env.MONGO_PORT | quote }}
+              value: "27017"
           ports:
-            {{- range $name, $port := .Values.service.main.ports }}
+            {{- range $name, $config := .Values.service.ports }}
             - name: {{ $name }}
-              containerPort: {{ $port.port }}
-              protocol: {{ $port.protocol | default "TCP" }}
+              containerPort: {{ $config.port }}
+              protocol: {{ $config.protocol }}
             {{- end }}
           {{- with .Values.controllers.main.containers.main.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           volumeMounts:
-            {{- range $name, $config := .Values.persistence }}
-            {{- if $config.enabled }}
-            {{- range $config.globalMounts }}
-            - name: {{ $name }}
-              mountPath: {{ .path }}
-              readOnly: {{ .readOnly | default false }}
-            {{- end }}
-            {{- end }}
-            {{- end }}
+            - name: config
+              mountPath: /config
+              readOnly: false
+            - name: data
+              mountPath: /usr/lib/unifi/data
+              readOnly: false
       volumes:
-        {{- range $name, $config := .Values.persistence }}
-        {{- if $config.enabled }}
-        - name: {{ $name }}
+        - name: config
           persistentVolumeClaim:
-            claimName: {{ include "argocd-unifi.fullname" $ }}-{{ $name }}
-        {{- end }}
-        {{- end }}
+            claimName: {{ include "argocd-unifi.fullname" . }}-config
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "argocd-unifi.fullname" . }}-data

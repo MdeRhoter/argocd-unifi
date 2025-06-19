@@ -95,6 +95,7 @@ persistence:
     type: persistentVolumeClaim
     size: 2Gi
     accessMode: ReadWriteOnce
+    storageClass: local-path
     globalMounts:
       - path: /config
         readOnly: false
@@ -104,6 +105,17 @@ persistence:
     type: persistentVolumeClaim
     size: 10Gi
     accessMode: ReadWriteOnce
+    storageClass: local-path
+    globalMounts:
+      - path: /data/db
+        readOnly: false
+
+  mongodb:
+    enabled: true
+    type: persistentVolumeClaim
+    size: 10Gi
+    accessMode: ReadWriteOnce
+    storageClass: local-path
     globalMounts:
       - path: /data/db
         readOnly: false
