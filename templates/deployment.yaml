@@ -25,7 +25,7 @@ spec:
       securityContext:
         fsGroup: 1000
         fsGroupChangePolicy: OnRootMismatch
-      initContainers:
+      initContainers:        
         - name: fix-permissions
           image: busybox:1.35
           command: ['sh', '-c']
@@ -36,11 +36,19 @@ spec:
               # Create necessary directories
               mkdir -p /config/data /config/logs /config/run
               chown -R 1000:1000 /config/data /config/logs /config/run
+              
+              # Handle UniFi data directory - remove existing and create symlink
+              rm -rf /usr/lib/unifi/data
+              ln -sf /unifi-data /usr/lib/unifi/data
+              chown -R 1000:1000 /unifi-data
+              chmod -R 755 /unifi-data
           securityContext:
             runAsUser: 0
           volumeMounts:
             - name: config
               mountPath: /config
+            - name: data
+              mountPath: /unifi-data
         - name: fix-mongodb-permissions
           image: busybox:1.35
           command: ['sh', '-c']
@@ -148,6 +156,8 @@ spec:
               value: "27017"
             - name: MONGO_AUTHSOURCE
               value: "admin"
+            - name: UNIFI_DATA_DIR
+              value: "/unifi-data"
           ports:
             {{- range $name, $config := .Values.service.ports }}
             - name: {{ $name }}
@@ -157,13 +167,13 @@ spec:
           {{- with .Values.controllers.main.containers.main.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
-          {{- end }}
+          {{- end }}          
           volumeMounts:
             - name: config
               mountPath: /config
               readOnly: false
             - name: data
-              mountPath: /usr/lib/unifi/data
+              mountPath: /unifi-data
               readOnly: false
       volumes:
         - name: config
