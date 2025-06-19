@@ -15,10 +15,10 @@ env:
   MEM_LIMIT: "1024"
   MEM_STARTUP: "1024"
 
-# MongoDB connection (will use secrets from Azure Key Vault)
+# MongoDB connection (now running as sidecar in same pod)
 mongodb:
-  enabled: true
-  host: argocd-unifi-mongodb
+  enabled: false  # Disabled standalone deployment, now sidecar
+  host: localhost
   port: "27017"
   image:
     repository: mongo

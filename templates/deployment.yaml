@@ -41,7 +41,74 @@ spec:
           volumeMounts:
             - name: config
               mountPath: /config
+        - name: fix-mongodb-permissions
+          image: busybox:1.35
+          command: ['sh', '-c']
+          args:
+            - |
+              # Create MongoDB directory structure
+              mkdir -p /data/db/journal
+              mkdir -p /data/db/logs
+              # Set ownership and permissions for MongoDB
+              chown -R 999:999 /data/db
+              chmod -R 755 /data/db
+              # Remove stale lock files if they exist
+              rm -f /data/db/mongod.lock
+              rm -f /data/db/WiredTiger.lock
+          securityContext:
+            runAsUser: 0
+          volumeMounts:
+            - name: mongodb-data
+              mountPath: /data/db
       containers:
+        - name: mongodb
+          image: "mongo:7.0"
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsUser: 999
+            runAsGroup: 999
+          command: ["mongod"]
+          args: 
+            - "--bind_ip_all"
+            - "--auth"
+            - "--dbpath=/data/db"
+            - "--logpath=/data/db/logs/mongodb.log"
+            - "--logappend"
+          env:
+            - name: MONGO_INITDB_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "argocd-unifi.fullname" . }}-mongo-database
+                  key: database
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "argocd-unifi.fullname" . }}-mongo-password
+                  key: password
+            - name: MONGO_INITDB_ROOT_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "argocd-unifi.fullname" . }}-mongo-username
+                  key: username
+          ports:
+            - name: mongodb
+              containerPort: 27017
+              protocol: TCP
+          resources:
+            limits:
+              cpu: 500m
+              memory: 1Gi
+            requests:
+              cpu: 250m
+              memory: 512Mi
+          lifecycle:
+            preStop:
+              exec:
+                command: ["mongod", "--shutdown"]
+          volumeMounts:
+            - name: mongodb-data
+              mountPath: /data/db
+              readOnly: false
         - name: unifi
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
@@ -76,7 +143,7 @@ spec:
                   name: {{ include "argocd-unifi.fullname" . }}-mongo-database
                   key: database
             - name: MONGO_HOST
-              value: "{{ include "argocd-unifi.fullname" . }}-mongodb"
+              value: "localhost"
             - name: MONGO_PORT
               value: "27017"
             - name: MONGO_AUTHSOURCE
@@ -105,3 +172,6 @@ spec:
         - name: data
           persistentVolumeClaim:
             claimName: {{ include "argocd-unifi.fullname" . }}-data
+        - name: mongodb-data
+          persistentVolumeClaim:
+            claimName: {{ include "argocd-unifi.fullname" . }}-mongodb-data
