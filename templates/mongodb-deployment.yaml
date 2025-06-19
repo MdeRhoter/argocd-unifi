@@ -66,6 +66,8 @@ spec:
             - "--bind_ip_all"
             - "--auth"
             - "--dbpath=/data/db"
+            - "--logpath=/data/db/logs/mongodb.log"
+            - "--logappend"
           env:
             {{- range $key, $value := .Values.mongodb.env }}
             {{- if and (eq $key "MONGO_INITDB_ROOT_USERNAME") $.Values.azureKeyVault.enabled }}

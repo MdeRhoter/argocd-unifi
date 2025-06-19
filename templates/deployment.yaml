@@ -60,7 +60,6 @@ spec:
               value: "1024"
             - name: MEM_STARTUP
               value: "1024"
-            {{- if .Values.azureKeyVault.enabled }}
             - name: MONGO_USER
               valueFrom:
                 secretKeyRef:
@@ -76,18 +75,12 @@ spec:
                 secretKeyRef:
                   name: {{ include "argocd-unifi.fullname" . }}-mongo-database
                   key: database
-            {{- else }}
-            - name: MONGO_USER
-              value: {{ .Values.controllers.main.containers.main.env.MONGO_USER | quote }}
-            - name: MONGO_PASS
-              value: {{ .Values.controllers.main.containers.main.env.MONGO_PASS | quote }}
-            - name: MONGO_DBNAME
-              value: {{ .Values.controllers.main.containers.main.env.MONGO_DBNAME | quote }}
-            {{- end }}
             - name: MONGO_HOST
               value: "{{ include "argocd-unifi.fullname" . }}-mongodb"
             - name: MONGO_PORT
               value: "27017"
+            - name: MONGO_AUTHSOURCE
+              value: "admin"
           ports:
             {{- range $name, $config := .Values.service.ports }}
             - name: {{ $name }}
