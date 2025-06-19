@@ -5,7 +5,7 @@ metadata:
   labels:
     {{- include "argocd-unifi.labels" . | nindent 4 }}
 spec:
-  replicas: {{ .Values.controllers.main.replicas | default 1 }}
+  replicas: {{ .Values.replicaCount | default 1 }}
   selector:
     matchLabels:
       {{- include "argocd-unifi.selectorLabels" . | nindent 6 }}
@@ -100,14 +100,10 @@ spec:
           ports:
             - name: mongodb
               containerPort: 27017
-              protocol: TCP
+              protocol: TCP          {{- with .Values.mongodb.resources }}
           resources:
-            limits:
-              cpu: 500m
-              memory: 1Gi
-            requests:
-              cpu: 250m
-              memory: 512Mi
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           lifecycle:
             preStop:
               exec:
@@ -162,11 +158,10 @@ spec:
             - name: {{ $name }}
               containerPort: {{ $config.port }}
               protocol: {{ $config.protocol }}
-            {{- end }}
-          {{- with .Values.controllers.main.containers.main.resources }}
+            {{- end }}          {{- with .Values.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
-          {{- end }}          
+          {{- end }}
           volumeMounts:
             - name: config
               mountPath: /config
