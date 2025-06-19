@@ -16,6 +16,23 @@ spec:
       storage: {{ .Values.persistence.config.size }}
 {{- end }}
 
+{{- if .Values.persistence.mongodb.enabled }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "argocd-unifi.fullname" . }}-mongodb-data
+  labels:
+    {{- include "argocd-unifi.labels" . | nindent 4 }}
+    app.kubernetes.io/component: mongodb
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: {{ .Values.persistence.mongodb.storageClass }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.mongodb.size }}
+{{- end }}
 {{- if .Values.persistence.data.enabled }}
 ---
 apiVersion: v1
