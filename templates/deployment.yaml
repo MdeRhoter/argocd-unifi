@@ -46,9 +46,9 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           securityContext:
-            runAsUser: 1000
-            runAsGroup: 1000
-            allowPrivilegeEscalation: false
+            runAsUser: 0
+            runAsGroup: 0
+            allowPrivilegeEscalation: true
           env:
             - name: PUID
               value: "1000"
