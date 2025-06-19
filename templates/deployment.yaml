@@ -78,7 +78,6 @@ spec:
           command: ["mongod"]
           args: 
             - "--bind_ip_all"
-            - "--auth"
             - "--dbpath=/data/db"
             - "--logpath=/data/db/logs/mongodb.log"
             - "--logappend"
